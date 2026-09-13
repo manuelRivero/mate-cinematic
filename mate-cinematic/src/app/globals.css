@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050505;
+  --foreground: #e8e6e1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-label);
+  --font-serif: var(--font-display);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+}
+
+html {
+  overflow-x: hidden;
+  background: #050505;
+  scroll-behavior: auto;
+}
+
+body {
+  background: #050505;
+  color: var(--foreground);
+  font-family: var(--font-label), sans-serif;
+  overflow-x: hidden;
+}
+
+canvas {
+  touch-action: none;
+}
+
+@keyframes scroll-pulse {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleY(0.55);
+    opacity: 0.2;
+  }
+}
+
+.scroll-line {
+  transform-origin: top center;
+  animation: scroll-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-line {
+    animation: none;
+  }
+}
