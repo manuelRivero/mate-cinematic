@@ -27,8 +27,10 @@ body {
   overflow-x: hidden;
 }
 
+/* Permitir scroll vertical táctil; el canvas no captura gestos */
 canvas {
-  touch-action: none;
+  pointer-events: none !important;
+  touch-action: pan-y !important;
 }
 
 @keyframes scroll-pulse {
