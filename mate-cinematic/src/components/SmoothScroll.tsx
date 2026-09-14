@@ -5,6 +5,7 @@ import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import "lenis/dist/lenis.css";
+import { PRELOAD_EVENT, type PreloadDetail } from "../lib/preloadGate";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,7 +27,11 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
       duration: 1.2,
       smoothWheel: true,
       touchMultiplier: 1.5,
+      autoRaf: false,
     });
+
+    // Arranca bloqueado hasta que el Preloader dispare unlock
+    lenis.stop();
 
     lenis.on("scroll", ScrollTrigger.update);
 
@@ -37,10 +42,21 @@ export default function SmoothScroll({ children }: SmoothScrollProps) {
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
 
-    // Layout estable tras fuentes / hidratación
+    const onPreload = (event: Event) => {
+      const { locked } = (event as CustomEvent<PreloadDetail>).detail;
+      if (locked) {
+        lenis.stop();
+      } else {
+        lenis.start();
+        requestAnimationFrame(() => ScrollTrigger.refresh());
+      }
+    };
+
+    window.addEventListener(PRELOAD_EVENT, onPreload);
     requestAnimationFrame(() => ScrollTrigger.refresh());
 
     return () => {
+      window.removeEventListener(PRELOAD_EVENT, onPreload);
       gsap.ticker.remove(tick);
       lenis.destroy();
     };
