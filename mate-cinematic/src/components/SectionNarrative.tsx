@@ -321,11 +321,11 @@ export default function SectionNarrative() {
             Especificaciones
           </h2>
 
-          <div className="mt-14 grid grid-cols-1 gap-px border border-white/10 bg-white/10 sm:grid-cols-2">
+          <div className="mt-14 grid grid-cols-1 gap-8 bg-transparent sm:grid-cols-2 sm:gap-px sm:border sm:border-white/10 sm:bg-white/10">
             {SPECS.map((spec) => (
               <article
                 key={spec.value}
-                className="reveal-item bg-[#050505] px-6 py-10 md:px-8 md:py-12"
+                className="reveal-item border border-white/10 bg-[#050505] px-6 py-10 sm:border-0 md:px-8 md:py-12"
               >
                 <p className="font-[family-name:var(--font-mono)] text-[clamp(1.75rem,4vw,2.75rem)] tracking-tight text-white">
                   {spec.value}
