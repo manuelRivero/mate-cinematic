@@ -3,28 +3,50 @@
 import { useLayoutEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  getInspectionPart,
+  setInspectionPart,
+  useInspectionPart,
+  type InspectionPart,
+} from "../lib/inspectionStore";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const SECTION_IDS = ["reveal", "craft", "specs", "ritual", "acquire"] as const;
 
-const ANATOMY = [
+const ANATOMY: ReadonlyArray<{
+  index: string;
+  title: string;
+  shortLabel: string;
+  body: string;
+  bodyMobile: string;
+  part: Exclude<InspectionPart, null>;
+}> = [
   {
     index: "01",
     title: "Alpaca Cincelada",
+    shortLabel: "Virola",
     body: "Guarda pampa tallada a mano en metal noble, pulida a espejo.",
+    bodyMobile: "Guarda pampa tallada a mano en alpaca, pulida a espejo.",
+    part: "virola",
   },
   {
     index: "02",
     title: "Cuero Vacuno",
+    shortLabel: "Cuero",
     body: "Textura de grano profundo, curtido natural libre de químicos agresivos.",
+    bodyMobile: "Grano profundo, curtido natural sin químicos agresivos.",
+    part: "cuero",
   },
   {
     index: "03",
     title: "Base Tetrapodal",
+    shortLabel: "Base",
     body: "Cuatro esferas de bronce macizo que aíslan la temperatura de la superficie.",
+    bodyMobile: "Cuatro esferas de bronce que aíslan la temperatura.",
+    part: "base",
   },
-] as const;
+];
 
 const SPECS = [
   { value: "420g", label: "Peso en mano equilibrado" },
@@ -38,6 +60,140 @@ const TRUST = [
   "Curado artesanal incluido",
   "Garantía perpetua en virola",
 ] as const;
+
+/** Desktop: lista vertical con hover. */
+function CraftAnatomyDesktop() {
+  const [activePart, setPart] = useInspectionPart();
+
+  return (
+    <ul className="reveal-item mt-12 hidden space-y-9 md:block">
+      {ANATOMY.map((item) => {
+        const isActive = activePart === item.part;
+        const isDimmed = activePart !== null && !isActive;
+
+        return (
+          <li
+            key={item.index}
+            className={`pointer-events-auto cursor-pointer border-l-2 pl-5 transition-all duration-500 ease-out ${
+              isActive
+                ? "border-white opacity-100"
+                : isDimmed
+                  ? "border-transparent opacity-40"
+                  : "border-transparent opacity-100 hover:border-white/40"
+            }`}
+            onMouseEnter={() => setPart(item.part)}
+            onMouseLeave={() => setPart(null)}
+            onFocus={() => setPart(item.part)}
+            onBlur={() => setPart(null)}
+            tabIndex={0}
+          >
+            <p
+              className={`font-[family-name:var(--font-mono)] text-[0.7rem] tracking-[0.2em] transition-colors duration-500 ${
+                isActive ? "text-white/70" : "text-white/30"
+              }`}
+            >
+              {item.index} /
+            </p>
+            <h3
+              className={`mt-2 font-[family-name:var(--font-label)] text-sm tracking-[0.12em] uppercase transition-colors duration-500 ${
+                isActive ? "text-white" : "text-white/85"
+              }`}
+            >
+              {item.title}
+            </h3>
+            <p
+              className={`mt-2 max-w-sm font-[family-name:var(--font-label)] text-sm leading-relaxed transition-colors duration-500 ${
+                isActive ? "text-white/70" : "text-white/40"
+              }`}
+            >
+              {item.body}
+            </p>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Mobile: segmented control táctil + ficha dinámica. */
+function CraftAnatomyMobile() {
+  const [activePart, setPart] = useInspectionPart();
+  const activeItem =
+    ANATOMY.find((item) => item.part === activePart) ?? ANATOMY[0];
+
+  // Al montar en mobile, preselecciona Virola para feedback inmediato
+  useLayoutEffect(() => {
+    const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
+    if (isMobileViewport && activePart === null) {
+      setPart("virola");
+    }
+
+    const craft = document.getElementById("craft");
+    if (!craft) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) {
+          setInspectionPart(null);
+        } else if (window.matchMedia("(max-width: 767px)").matches) {
+          // Reentrar a Craft en mobile: restaurar última o virola
+          if (getInspectionPart() === null) {
+            setPart("virola");
+          }
+        }
+      },
+      { threshold: 0.35 },
+    );
+
+    observer.observe(craft);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar el dock
+  }, []);
+
+  return (
+    <div className="reveal-item pointer-events-none md:hidden">
+      <div className="pointer-events-auto w-full bg-gradient-to-t from-black via-black/85 to-transparent px-4 pt-10 pb-10">
+        <div
+          role="tablist"
+          aria-label="Inspeccionar partes"
+          className="flex gap-2"
+        >
+          {ANATOMY.map((item) => {
+            const isActive = activePart === item.part;
+            return (
+              <button
+                key={item.part}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setPart(item.part)}
+                className={`min-h-[44px] flex-1 rounded-full border px-3 font-[family-name:var(--font-label)] text-[0.65rem] tracking-[0.16em] uppercase transition-all duration-300 active:scale-95 ${
+                  isActive
+                    ? "border-white/30 bg-white/15 text-white"
+                    : "border-transparent bg-white/5 text-white/40"
+                }`}
+              >
+                {item.shortLabel}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 min-h-[4.5rem]">
+          <p className="font-[family-name:var(--font-mono)] text-[0.65rem] tracking-[0.22em] text-white/35">
+            {activeItem.index} /
+          </p>
+          <h3 className="mt-1.5 font-[family-name:var(--font-label)] text-sm tracking-[0.14em] text-white uppercase">
+            {activeItem.title}
+          </h3>
+          <p className="mt-2 max-w-md font-[family-name:var(--font-label)] text-sm leading-snug text-white/50">
+            {activeItem.bodyMobile}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function SectionNarrative() {
   useLayoutEffect(() => {
@@ -64,7 +220,6 @@ export default function SectionNarrative() {
           },
         });
 
-        // La CTA final permanece visible
         if (id === "acquire") return;
 
         gsap.to(parts, {
@@ -83,12 +238,14 @@ export default function SectionNarrative() {
     });
 
     ScrollTrigger.refresh();
-    return () => ctx.revert();
+    return () => {
+      setInspectionPart(null);
+      ctx.revert();
+    };
   }, []);
 
   return (
     <div className="pointer-events-none relative z-10">
-      {/* —— HERO / ORIGEN —— */}
       <section
         id="reveal"
         aria-label="Origen"
@@ -118,13 +275,13 @@ export default function SectionNarrative() {
         </div>
       </section>
 
-      {/* —— ANATOMÍA / CRAFT —— */}
       <section
         id="craft"
         aria-label="Anatomía"
-        className="flex min-h-screen items-center px-6 py-24 md:px-12 lg:px-20"
+        className="relative flex min-h-screen flex-col justify-end px-0 py-0 md:justify-center md:px-12 md:py-24 lg:px-20"
       >
-        <div className="section-copy w-full max-w-md md:max-w-lg">
+        {/* Desktop: copy + lista a la izquierda */}
+        <div className="section-copy hidden w-full max-w-md px-6 md:block md:max-w-lg md:px-0">
           <p className="reveal-item mb-4 font-[family-name:var(--font-label)] text-[0.65rem] font-medium tracking-[0.38em] text-white/35 uppercase">
             02 — Anatomía
           </p>
@@ -135,25 +292,22 @@ export default function SectionNarrative() {
             Tres materias. Una sola pieza. El detalle define el carácter.
           </p>
 
-          <ul className="mt-12 space-y-9">
-            {ANATOMY.map((item) => (
-              <li key={item.index} className="reveal-item">
-                <p className="font-[family-name:var(--font-mono)] text-[0.7rem] tracking-[0.2em] text-white/30">
-                  {item.index} /
-                </p>
-                <h3 className="mt-2 font-[family-name:var(--font-label)] text-sm tracking-[0.12em] text-white/85 uppercase">
-                  {item.title}
-                </h3>
-                <p className="mt-2 max-w-sm font-[family-name:var(--font-label)] text-sm leading-relaxed text-white/40">
-                  {item.body}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <CraftAnatomyDesktop />
         </div>
+
+        {/* Mobile: eyebrow compacto arriba + dock inferior */}
+        <div className="pointer-events-none absolute inset-x-0 top-24 px-6 md:hidden">
+          <p className="reveal-item font-[family-name:var(--font-label)] text-[0.65rem] font-medium tracking-[0.38em] text-white/35 uppercase">
+            02 — Anatomía
+          </p>
+          <h2 className="reveal-item mt-2 font-serif text-3xl tracking-tight text-white/95">
+            The Craft
+          </h2>
+        </div>
+
+        <CraftAnatomyMobile />
       </section>
 
-      {/* —— ESPECIFICACIONES —— */}
       <section
         id="specs"
         aria-label="Especificaciones"
@@ -185,7 +339,6 @@ export default function SectionNarrative() {
         </div>
       </section>
 
-      {/* —— RITUAL —— */}
       <section
         id="ritual"
         aria-label="The Ritual"
@@ -202,7 +355,6 @@ export default function SectionNarrative() {
         </div>
       </section>
 
-      {/* —— ACQUIRE / CTA —— */}
       <section
         id="acquire"
         aria-label="Reservar"
